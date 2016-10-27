@@ -17,7 +17,6 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 using winsdkfb;
 using winsdkfb.Graph;
-using static testApi_Facebook.PicturePlaceModel;
 
 //maps 
 using Windows.UI.Xaml.Controls.Maps;
@@ -26,6 +25,7 @@ using Windows.Services.Maps;
 using Windows.Storage.Streams;
 using Windows.UI.Xaml.Shapes;
 using Windows.UI;
+using System.Dynamic;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -36,8 +36,7 @@ namespace PlaceMyPicture
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        int picNum= 0;
-        PicturePlaceObject profile;
+        private Dictionary<String, Datum> picDataDict = new Dictionary<String, Datum>();
         public MainPage()
         {
             this.InitializeComponent();
@@ -69,7 +68,7 @@ namespace PlaceMyPicture
             if (result.Succeeded)
             {
                 string name = session.User.Name;
-                OnGet();//once the user has given permissin and logged on
+                OnGet();//once the user has given permission and logged on
             }
             else
             {
@@ -79,38 +78,48 @@ namespace PlaceMyPicture
 
         private async void OnGet()
         {
-            string endpoint = "/me";//where the url starts from 
+            //Loop over pictures till all have been added 
+
+            string endpoint = "/me/photos";//where the url starts from 
 
             PropertySet parameters = new PropertySet();
-            //me? fields = photos{ source,place}
-            parameters.Add("fields", "photos{source,place}");//the fields you want to get
-            parameters.Add("after", "TVRBeE5UWTVPRGcxTURJd01UQTFNVEU2TVRRMk5UVXhNRFV6T0Rvek9UUXdPRGsyTkRBMk5EYzRNelk9");
-            //parameters.Add("fields", "photos{images}");//the fields you want to get
-
+            parameters.Add("fields", "source,place");//the fields you want to get
 
             FBSingleValue value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
             FBResult graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
 
             if (graphResult.Succeeded)
             {
-                profile = graphResult.Object as PicturePlaceObject;
-                var lastImg = profile.photos.data.Count;
+                PicturePlaceObject results = graphResult.Object as PicturePlaceObject;
+                int i = 0;
+                while (results.paging != null || results.data.Count != 0)
+                {
+                    addPicToList(results);//Add Results to a list
 
-                //data[24] is the 24th image
-                //string source = profile.photos.data[1].source.ToString();
+                    parameters.Remove("after");
+                    parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
 
-                pic1.Source = new BitmapImage(new Uri(profile.photos.data[1].source.ToString(), UriKind.Absolute));
-                pic2.Source = new BitmapImage(new Uri(profile.photos.data[2].source.ToString(), UriKind.Absolute));
-                pic3.Source = new BitmapImage(new Uri(profile.photos.data[3].source.ToString(), UriKind.Absolute));
-                pic4.Source = new BitmapImage(new Uri(profile.photos.data[4].source.ToString(), UriKind.Absolute));
-                foreach (var p in profile.photos.data)
+                    value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
+                    graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
+                    results = graphResult.Object as PicturePlaceObject;
+                }
+
+                //string source = results.data[1].source.ToString();
+                //pic1.Source = new BitmapImage(new Uri(pictures[results.id].source.ToString(), UriKind.Absolute));
+                //pic2.Source = new BitmapImage(new Uri(results.data[2].source.ToString(), UriKind.Absolute));
+                //pic3.Source = new BitmapImage(new Uri(results.data[3].source.ToString(), UriKind.Absolute));
+                //pic4.Source = new BitmapImage(new Uri(results.data[4].source.ToString(), UriKind.Absolute));
+
+                foreach (var p in picDataDict)
                 {
                     //Dont add pictures that dont have a long/lat
-                    if (p.place != null) {
-                        BitmapImage img = new BitmapImage(new Uri(p.source.ToString(), UriKind.Absolute));
-                        double lon = p.place.location.longitude;
-                        double lat = p.place.location.latitude;
-                        AddMapPin(img,lon,lat);
+                    if (p.Value.place != null && p.Value.place.location != null)
+                    {
+                        BitmapImage img = new BitmapImage(new Uri(p.Value.source.ToString(), UriKind.Absolute));
+                        double lon = p.Value.place.location.longitude;
+                        double lat = p.Value.place.location.latitude;
+
+                        AddMapPin(img, lon, lat);//Make A New Pin
                     }
                 }
 
@@ -120,14 +129,26 @@ namespace PlaceMyPicture
                 MessageDialog dialog = new MessageDialog("Couldnt Find!");
                 await dialog.ShowAsync();
             }
+
         }
+
+        private void addPicToList(PicturePlaceObject results)
+        {
+            foreach (var p in results.data)
+            {
+                picDataDict.Add(p.id, p);
+            }
+        }
+
+
+
 
         private void AddMapPin(BitmapImage img, double lon, double lat)
         {
             BasicGeoposition location = new BasicGeoposition();
             location.Latitude = lat;
             location.Longitude = lon;
-           
+
             //Create the New Pin
             CreateNewPin(location, img);
 
@@ -141,18 +162,13 @@ namespace PlaceMyPicture
             imageBrush.ImageSource = urlImage;
 
             Button btn = new Button();
-            btn.Click += Btn_Click;
-            btn.Opacity = 0;
-            btn.Width = 24;
-            btn.Height = 24;
-            int t = 0;
 
-            var pinDesign = new Grid()
+            //var pinDesign = new Grid()
+            var pinDesign = new Canvas()
             {
                 Height = 30,
                 Width = 30,
                 Margin = new Windows.UI.Xaml.Thickness(-10),
-                Name = t++.ToString(),
             };
 
             pinDesign.Children.Add(new Ellipse()
@@ -161,25 +177,26 @@ namespace PlaceMyPicture
                 Stroke = new SolidColorBrush(Colors.White),
                 StrokeThickness = 1,
                 Width = 24,
-                Height = 24,        
+                Height = 24,
             });
-            pinDesign.Children.Add(btn);
 
-            //pinDesign.Children.Add(new Image()
-            //{
-            //    Width = 30,                
-            //    Source = new BitmapImage(new Uri(urlImage, UriKind.Absolute)),
-            //    HorizontalAlignment = Windows.UI.Xaml.HorizontalAlignment.Center,
-            //    VerticalAlignment = Windows.UI.Xaml.VerticalAlignment.Center
-            //});
+            //Lambda Expresion has a click event then changes the picture source
+            btn.Click += (sender, eventArgs) =>
+            {
+                pic4.Source = urlImage;//Image Control on MainPage.xmaml
+                Canvas.SetZIndex(btn, -1); //Not Working zindex changes position 
+            };
 
+            btn.Opacity = 0;
+            btn.Width = 24;
+            btn.Height = 24;
+
+            //Canvas.SetZIndex(btn, 0); NOT WORKING
+
+            pinDesign.Children.Add(btn);//Add the btn as a child element      
             MapControl.SetLocation(pinDesign, new Geopoint(location));
-            Map.Children.Add(pinDesign);
-        }
-
-        private void Btn_Click(object sender, RoutedEventArgs e)
-        {           
-            pic4.Source = new BitmapImage(new Uri(profile.photos.data[picNum++].source.ToString(), UriKind.Absolute));
+            Map.Children.Add(pinDesign);//Add the pin to the map
+            Map.ZoomLevel = 7;//SETS THE ZOOM LVL ON THE MAP
         }
     }
 }

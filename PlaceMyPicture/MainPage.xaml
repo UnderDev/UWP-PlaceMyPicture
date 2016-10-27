@@ -8,7 +8,7 @@
     mc:Ignorable="d"
     xmlns:Maps="using:Windows.UI.Xaml.Controls.Maps">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Background="{ThemeResource AppBarButtonForeground}">
         <Grid.RowDefinitions>
             <RowDefinition Height="1*" />
             <RowDefinition Height="1*" />
@@ -22,7 +22,6 @@
             <ColumnDefinition Width="1*" />
         </Grid.ColumnDefinitions>
 
-
         <Image x:Name="pic1" Stretch="Uniform" Grid.Row="0" Grid.Column="0"></Image>
         <Image x:Name="pic2" Stretch="Uniform" Grid.Row="0" Grid.Column="1"></Image>
         <Image x:Name="pic3" Stretch="Uniform" Grid.Row="0" Grid.Column="2"></Image>
@@ -35,7 +34,7 @@
             ZoomInteractionMode="GestureAndControl" 
             LandmarksVisible="True" 
             IsRightTapEnabled="true" 
-            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="1" Grid.RowSpan="3"
+            Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="1" Grid.RowSpan="3" TiltInteractionMode="Auto"
             />
     </Grid>
 </Page>
