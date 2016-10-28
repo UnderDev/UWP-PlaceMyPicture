@@ -14,6 +14,7 @@
             <RowDefinition Height="1*" />
             <RowDefinition Height="1*" />
             <RowDefinition Height="1*" />
+            <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*" />
@@ -24,8 +25,8 @@
         </Grid.ColumnDefinitions>
 
         
-        <StackPanel x:Name="imgStackPanel" Grid.Row="0" Grid.Column="0"  Grid.ColumnSpan="5">
-            <!--Add images here at runtime into a slider-->
+        <!--<StackPanel x:Name="imgStackPanel" Grid.Row="0" Grid.Column="0"  Grid.ColumnSpan="5">
+            --><!--Add images here at runtime into a slider--><!--
             
             <Image x:Name="pic0" Stretch="Uniform" Grid.Row="0" Grid.RowSpan="1" Grid.Column="0" Grid.ColumnSpan="1"></Image>
             <Image x:Name="pic1" Stretch="Uniform" Grid.Row="0" Grid.RowSpan="1" Grid.Column="1" Grid.ColumnSpan="1"></Image>
@@ -33,10 +34,17 @@
             <Image x:Name="pic3" Stretch="Uniform" Grid.Row="0" Grid.RowSpan="1" Grid.Column="3" Grid.ColumnSpan="1"></Image>
             <Image x:Name="pic4" Stretch="Uniform" Grid.Row="0" Grid.RowSpan="1" Grid.Column="4" Grid.ColumnSpan="1"></Image>
             <ScrollViewer Height="100"/>
-        </StackPanel>
+        </StackPanel>-->
+
+        <FlipView x:Name="FlipViewImgs" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"  Grid.ColumnSpan="5">
+            <!--Add images here at runtime into a FlipView-->
+            
+        </FlipView>
 
 
-            <!--Places a Map on the application with the unique MapServiceToken(Taken from https://www.bingmapsportal.com/Application)-->
+
+
+        <!--Places a Map on the application with the unique MapServiceToken(Taken from https://www.bingmapsportal.com/Application)-->
             <Maps:MapControl 
             x:Name="Map" 
             MapServiceToken="SIFc0hmwekhYcRwL8aUF~AApLKW_Y8SIqhILM0BB4YQ~Ag5-a0Bg_FEflydyBMFb2dU4kbxUFprNddcPZik_hN8u9jX018qASJ0nzwD1AJ5r"
@@ -44,7 +52,7 @@
             LandmarksVisible="True" 
             IsRightTapEnabled="true" 
             TiltInteractionMode="Auto"
-                Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="1" Grid.RowSpan="3"
+                Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="2" Grid.RowSpan="3"
             />
     </Grid>
 </Page>

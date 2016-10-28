@@ -54,7 +54,7 @@ namespace PlaceMyPicture
         {
             picDataDict = new Dictionary<String, Datum>();
             geoLocList = new Dictionary<BitmapImage, BasicGeoposition>();
-            getImgControls();
+            //getImgControls();
         }
 
         /*
@@ -117,12 +117,6 @@ namespace PlaceMyPicture
                     graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
                     results = graphResult.Object as PicturePlaceObject;
                 }
-
-                //string source = results.data[1].source.ToString();
-                //pic1.Source = new BitmapImage(new Uri(pictures[results.id].source.ToString(), UriKind.Absolute));
-                //pic2.Source = new BitmapImage(new Uri(results.data[2].source.ToString(), UriKind.Absolute));
-                //pic3.Source = new BitmapImage(new Uri(results.data[3].source.ToString(), UriKind.Absolute));
-                //pic4.Source = new BitmapImage(new Uri(results.data[4].source.ToString(), UriKind.Absolute));
 
                 foreach (var p in picDataDict)
                 {
@@ -223,18 +217,14 @@ namespace PlaceMyPicture
             //Lambda Expresion, Button Click event 
             btn.Click += (sender, eventArgs) =>
             {
-                //Canvas.SetZIndex(btn, -1); //Not Working zindex changes position 
-                //
                 BitmapImage source = getBtnBitmap(sender);
                 displayImages(source);
             };
 
-            //Lambda Expression, When The Button Gets Hovered Over Do Something
+            //Lambda Expression, When The Button Gets Hovered Over Do Something (NOT USED) MABY BLOW MAIN IMAGE UP -------------------------------------
             btn.PointerEntered += (sender, eventArgs) =>
             {
                 BitmapImage source = getBtnBitmap(sender);
-
-                pic2.Source = source;
             };
 
             return btn;
@@ -251,34 +241,38 @@ namespace PlaceMyPicture
             return source;
         }
 
-        //Displayes the image in the header
+        /* Displayes the image in the header
+         * Method used to get all images that are over lapping eachother
+        */
         private void displayImages(BitmapImage source)
         {
-            int tot = 0;
             BasicGeoposition geo;
             geoLocList.TryGetValue(source, out geo);//Search Dict for Key BMI and get value BG
-            var matches = geoLocList.Where(pair => pair.Value.Equals(geo)).Select(pair => pair.Key);
+            var imgKeys = geoLocList.Where(pair => pair.Value.Equals(geo)).Select(pair => pair.Key);
 
-            foreach (var v in matches)
+            FlipViewImgs.Items.Clear();//CLEAR ALL THE PRIVIOUS IMAGES (MABY KEEP) *DUPLICATES ADDED TOO OTHERWISE ------------------------------
+
+            //For each img in imgKeys
+            foreach (var img in imgKeys)
             {
                 //If statment just used until i create the images At Runtime and stick them in a stackpanel/Slider
-                if (tot < imgControlList.Count) {
-                    imgControlList[tot].Source = new BitmapImage(v.UriSource);
-                    tot++;
-                }            
+                    Image i = new Image();
+                    
+                    i.Source = new BitmapImage(img.UriSource);
+                    FlipViewImgs.Items.Add(i);//Add an Image to the Control        
             }
 
  
 
         }
 
-        private void getImgControls()
-        {         
-            foreach (Image b in imgStackPanel.Children)
-            {
-                imgControlList.Add(b);
-            }
-        }
+        //private void getImgControls()
+        //{         
+        //    foreach (Image b in imgStackPanel.Children)
+        //    {
+        //        imgControlList.Add(b);
+        //    }
+        //}
 
 
         private Canvas newCanvas()
