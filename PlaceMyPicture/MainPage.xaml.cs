@@ -36,11 +36,25 @@ namespace PlaceMyPicture
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private Dictionary<String, Datum> picDataDict = new Dictionary<String, Datum>();
+
+        private Dictionary<String, Datum> picDataDict;
+        private Dictionary<BitmapImage, BasicGeoposition> geoLocList;
+
+        List<Image> imgControlList = new List<Image>();
+
+
         public MainPage()
         {
             this.InitializeComponent();
             OnLogin();
+            init();
+        }
+
+        private void init()
+        {
+            picDataDict = new Dictionary<String, Datum>();
+            geoLocList = new Dictionary<BitmapImage, BasicGeoposition>();
+            getImgControls();
         }
 
         /*
@@ -115,7 +129,7 @@ namespace PlaceMyPicture
                     //Dont add pictures that dont have a long/lat
                     if (p.Value.place != null && p.Value.place.location != null)
                     {
-                        BitmapImage img = new BitmapImage(new Uri(p.Value.source.ToString(), UriKind.Absolute));
+                        BitmapImage img = new BitmapImage(new Uri(p.Value.source, UriKind.Absolute));
                         double lon = p.Value.place.location.longitude;
                         double lat = p.Value.place.location.latitude;
 
@@ -161,42 +175,120 @@ namespace PlaceMyPicture
             ImageBrush imageBrush = new ImageBrush();
             imageBrush.ImageSource = urlImage;
 
-            Button btn = new Button();
+            Color color = Colors.Coral;
+            Canvas pinDesign = newCanvas();//creates a new canvas
 
-            //var pinDesign = new Grid()
-            var pinDesign = new Canvas()
+
+            if (geoLocList.ContainsValue(location))
             {
-                Height = 30,
-                Width = 30,
-                Margin = new Windows.UI.Xaml.Thickness(-10),
-            };
+                color = Colors.Red;
+            }
 
-            pinDesign.Children.Add(new Ellipse()
-            {
-                Fill = imageBrush,
-                Stroke = new SolidColorBrush(Colors.White),
-                StrokeThickness = 1,
-                Width = 24,
-                Height = 24,
-            });
+            Ellipse ellipse = newEllipse(color, imageBrush);//Create a new elipse
+            pinDesign.Children.Add(ellipse);//Add Ellipse to Canvas
 
-            //Lambda Expresion has a click event then changes the picture source
-            btn.Click += (sender, eventArgs) =>
-            {
-                pic4.Source = urlImage;//Image Control on MainPage.xmaml
-                Canvas.SetZIndex(btn, -1); //Not Working zindex changes position 
-            };
+            Button btn = newButton(imageBrush);//Create A New Button
+            pinDesign.Children.Add(btn);//Add Btn to Canvas
 
-            btn.Opacity = 0;
-            btn.Width = 24;
-            btn.Height = 24;
 
-            //Canvas.SetZIndex(btn, 0); NOT WORKING
-
-            pinDesign.Children.Add(btn);//Add the btn as a child element      
+            //Add The Pin to the map and the location passed in
             MapControl.SetLocation(pinDesign, new Geopoint(location));
             Map.Children.Add(pinDesign);//Add the pin to the map
             Map.ZoomLevel = 7;//SETS THE ZOOM LVL ON THE MAP
+
+
+            geoLocList.Add(urlImage, location);//add the location to the list
+        }
+
+        private Ellipse newEllipse(Color color, ImageBrush imgBrush)
+        {
+            Ellipse elip = new Ellipse();
+            elip.Fill = imgBrush;
+            elip.Stroke = new SolidColorBrush(color);
+            elip.StrokeThickness = 1;
+            elip.Width = 26;
+            elip.Height = 26;
+
+            return elip;
+        }
+
+        private Button newButton(ImageBrush imgBrush)
+        {
+            Button btn = new Button();
+            btn.Opacity = 0;//Hide Btn Visability
+            btn.Width = 26;
+            btn.Height = 26;
+            btn.Background = imgBrush;//Only use PointerEntered Event 
+
+            //Lambda Expresion, Button Click event 
+            btn.Click += (sender, eventArgs) =>
+            {
+                //Canvas.SetZIndex(btn, -1); //Not Working zindex changes position 
+                //
+                BitmapImage source = getBtnBitmap(sender);
+                displayImages(source);
+            };
+
+            //Lambda Expression, When The Button Gets Hovered Over Do Something
+            btn.PointerEntered += (sender, eventArgs) =>
+            {
+                BitmapImage source = getBtnBitmap(sender);
+
+                pic2.Source = source;
+            };
+
+            return btn;
+        }
+
+        /* Method gets the sendr and casts it as a button. 
+         * it then gets the backround image and returns it as a BitMapImage
+         */
+        private BitmapImage getBtnBitmap(object sender)
+        {
+            Button btnSender = sender as Button;//Cast the sender as a Button
+            ImageBrush brush = btnSender.Background as ImageBrush;//Cast the img.background as a
+            BitmapImage source = brush.ImageSource as BitmapImage;//Cast the imageSource as a BitMapImage
+            return source;
+        }
+
+        //Displayes the image in the header
+        private void displayImages(BitmapImage source)
+        {
+            int tot = 0;
+            BasicGeoposition geo;
+            geoLocList.TryGetValue(source, out geo);//Search Dict for Key BMI and get value BG
+            var matches = geoLocList.Where(pair => pair.Value.Equals(geo)).Select(pair => pair.Key);
+
+            foreach (var v in matches)
+            {
+                //If statment just used until i create the images At Runtime and stick them in a stackpanel/Slider
+                if (tot < imgControlList.Count) {
+                    imgControlList[tot].Source = new BitmapImage(v.UriSource);
+                    tot++;
+                }            
+            }
+
+ 
+
+        }
+
+        private void getImgControls()
+        {         
+            foreach (Image b in imgStackPanel.Children)
+            {
+                imgControlList.Add(b);
+            }
+        }
+
+
+        private Canvas newCanvas()
+        {
+            Canvas canvas = new Canvas();
+            canvas.Height = 30;
+            canvas.Width = 30;
+            canvas.Margin = new Windows.UI.Xaml.Thickness(-10);
+
+            return canvas;
         }
     }
 }
