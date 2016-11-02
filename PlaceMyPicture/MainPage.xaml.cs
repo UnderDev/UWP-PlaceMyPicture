@@ -27,38 +27,66 @@ using Windows.UI.Xaml.Shapes;
 using Windows.UI;
 using System.Dynamic;
 
-// The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
 namespace PlaceMyPicture
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class MainPage : Page
     {
 
         private Dictionary<String, Datum> picDataDict;
-        private Dictionary<BitmapImage, BasicGeoposition> geoLocList;
-
-        List<Image> imgControlList = new List<Image>();
-
+        private Dictionary<BitmapImage, BasicGeoposition> geoLocDict;
 
         public MainPage()
         {
             this.InitializeComponent();
-            OnLogin();
             init();
+            OnLogin();       
         }
 
         private void init()
         {
             picDataDict = new Dictionary<String, Datum>();
-            geoLocList = new Dictionary<BitmapImage, BasicGeoposition>();
-            //getImgControls();
+            geoLocDict = new Dictionary<BitmapImage, BasicGeoposition>();
+            getUserLocation();
         }
 
-        /*
-         * Facebook LogIn Authorization/Permissions
+
+        /*Method gets the users Current location and passes the Long/Lat to the Bing Map showing you your current location
+         */
+        private async void getUserLocation()
+        {
+            var accessStatus = await Geolocator.RequestAccessAsync();
+
+            switch (accessStatus)
+            {
+                case GeolocationAccessStatus.Allowed:
+
+                    // If DesiredAccuracy or DesiredAccuracyInMeters are not set (or value is 0), DesiredAccuracy.Default is used.
+                    Geolocator _geolocator = new Geolocator { DesiredAccuracyInMeters = 10 };
+
+                    // Carry out the operation.
+                    Geoposition pos = await _geolocator.GetGeopositionAsync();
+                    BasicGeoposition geo = new BasicGeoposition();
+
+                    geo.Latitude = pos.Coordinate.Point.Position.Latitude;
+                    geo.Longitude = pos.Coordinate.Point.Position.Longitude;
+
+                    BingMap.Center = new Geopoint(geo);//Center Map on geolocation
+                    BingMap.ZoomLevel = 7;//Sets the zoom level on the map
+                    break;
+
+                case GeolocationAccessStatus.Denied:
+                    //Please turn your location on 
+                    break;
+
+                case GeolocationAccessStatus.Unspecified:
+                    //Please turn your location on 
+                    break;
+            }
+        }
+
+
+        /*Facebook LogIn Authorization/Permissions
          */
         private async void OnLogin()
         {
@@ -70,11 +98,8 @@ namespace PlaceMyPicture
 
             List<String> permissionList = new List<String>();//list of all the permissions needed from the user
             permissionList.Add("public_profile");
-            permissionList.Add("user_likes");
             permissionList.Add("user_location");
             permissionList.Add("user_photos");
-            permissionList.Add("publish_actions");
-            permissionList.Add("email");
 
             FBPermissions permissions = new FBPermissions(permissionList);
 
@@ -82,7 +107,7 @@ namespace PlaceMyPicture
             if (result.Succeeded)
             {
                 string name = session.User.Name;
-                OnGet();//once the user has given permission and logged on
+                onSuccessLogin();//once the user has given permission and logged on
             }
             else
             {
@@ -90,27 +115,28 @@ namespace PlaceMyPicture
             }
         }
 
-        private async void OnGet()
+        /*On Successful login, send GET request to FB endpoint with params and DeserializeJson the results into objects/Dictonary
+         */
+        private async void onSuccessLogin()
         {
-            //Loop over pictures till all have been added 
-
             string endpoint = "/me/photos";//where the url starts from 
 
             PropertySet parameters = new PropertySet();
-            parameters.Add("fields", "source,place");//the fields you want to get
+            parameters.Add("fields", "source,place");//Required fields needed
 
             FBSingleValue value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
-            FBResult graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
+            FBResult graphResult = await value.GetAsync();
 
-            if (graphResult.Succeeded)
+            if (graphResult.Succeeded)//check to see if the Requets Succeeded
             {
+
                 PicturePlaceObject results = graphResult.Object as PicturePlaceObject;
-                int i = 0;
+
                 while (results.paging != null || results.data.Count != 0)
                 {
                     addPicToList(results);//Add Results to a list
 
-                    parameters.Remove("after");
+                    parameters.Remove("after");//Remove previous parameters
                     parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
 
                     value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
@@ -118,82 +144,74 @@ namespace PlaceMyPicture
                     results = graphResult.Object as PicturePlaceObject;
                 }
 
-                foreach (var p in picDataDict)
-                {
-                    //Dont add pictures that dont have a long/lat
-                    if (p.Value.place != null && p.Value.place.location != null)
-                    {
-                        BitmapImage img = new BitmapImage(new Uri(p.Value.source, UriKind.Absolute));
-                        double lon = p.Value.place.location.longitude;
-                        double lat = p.Value.place.location.latitude;
-
-                        AddMapPin(img, lon, lat);//Make A New Pin
-                    }
-                }
-
+                makeCustomPin();//makes pins from FB images that have locations added
             }
             else
             {
                 MessageDialog dialog = new MessageDialog("Couldnt Find!");
                 await dialog.ShowAsync();
             }
-
         }
 
-        private void addPicToList(PicturePlaceObject results)
+        /*Method loops through all the pictures in picDataDict that have a location, gets image source, Long/Lat coords and passes it to the method
+        * createNewPin()
+        */
+        private void makeCustomPin()
         {
-            foreach (var p in results.data)
+            BasicGeoposition location = new BasicGeoposition();
+            foreach (var pic in picDataDict)
             {
-                picDataDict.Add(p.id, p);
+                //Skip over the pictures that dont have a long/lat or place
+                if (pic.Value.place != null && pic.Value.place.location != null)
+                {
+                    BitmapImage img = new BitmapImage(new Uri(pic.Value.source, UriKind.Absolute));
+                    location.Latitude = pic.Value.place.location.latitude;
+                    location.Longitude = pic.Value.place.location.longitude;
+
+                    createNewPin(location, img);
+                }
             }
         }
 
-
-
-
-        private void AddMapPin(BitmapImage img, double lon, double lat)
+        /*Creates a dictonary with the object id as the key and the object iteself as the value
+         */
+        private void addPicToList(PicturePlaceObject results)
         {
-            BasicGeoposition location = new BasicGeoposition();
-            location.Latitude = lat;
-            location.Longitude = lon;
-
-            //Create the New Pin
-            CreateNewPin(location, img);
-
-            //Map.MapElements.Add(mapIcon);
-            Map.Center = new Geopoint(location);//center the map on the given location (MABY CURRENT)
+            foreach (var pic in results.data)
+            {
+                picDataDict.Add(pic.id, pic);
+            }
         }
 
-        public void CreateNewPin(BasicGeoposition location, BitmapImage urlImage)
+        /*Creates a new pin(canvas/ellipse/button) and adds it to the Bing Map
+         */
+        public void createNewPin(BasicGeoposition location, BitmapImage urlImage)
         {
             ImageBrush imageBrush = new ImageBrush();
             imageBrush.ImageSource = urlImage;
 
             Color color = Colors.Coral;
-            Canvas pinDesign = newCanvas();//creates a new canvas
+            Canvas canvasPinDesign = newCanvas();//creates a new canvas
 
-
-            if (geoLocList.ContainsValue(location))
+            if (geoLocDict.ContainsValue(location))
             {
                 color = Colors.Red;
             }
 
             Ellipse ellipse = newEllipse(color, imageBrush);//Create a new elipse
-            pinDesign.Children.Add(ellipse);//Add Ellipse to Canvas
+            canvasPinDesign.Children.Add(ellipse);//Add Ellipse to Canvas
 
             Button btn = newButton(imageBrush);//Create A New Button
-            pinDesign.Children.Add(btn);//Add Btn to Canvas
+            canvasPinDesign.Children.Add(btn);//Add Btn to Canvas
 
 
-            //Add The Pin to the map and the location passed in
-            MapControl.SetLocation(pinDesign, new Geopoint(location));
-            Map.Children.Add(pinDesign);//Add the pin to the map
-            Map.ZoomLevel = 7;//SETS THE ZOOM LVL ON THE MAP
+            addPinToMap(canvasPinDesign, location);
 
-
-            geoLocList.Add(urlImage, location);//add the location to the list
+            geoLocDict.Add(urlImage, location);//add the location to the list
         }
 
+        /*Creates/returns a new Ellipse control with the passed in parameters
+         */
         private Ellipse newEllipse(Color color, ImageBrush imgBrush)
         {
             Ellipse elip = new Ellipse();
@@ -206,6 +224,8 @@ namespace PlaceMyPicture
             return elip;
         }
 
+        /*Creates a new button control with Lambda Click events to get the senders ImageBrush
+         */
         private Button newButton(ImageBrush imgBrush)
         {
             Button btn = new Button();
@@ -230,7 +250,7 @@ namespace PlaceMyPicture
             return btn;
         }
 
-        /* Method gets the sendr and casts it as a button. 
+        /* Method gets the sender and casts it as a button. 
          * it then gets the backround image and returns it as a BitMapImage
          */
         private BitmapImage getBtnBitmap(object sender)
@@ -247,23 +267,19 @@ namespace PlaceMyPicture
         private void displayImages(BitmapImage source)
         {
             BasicGeoposition geo;
-            geoLocList.TryGetValue(source, out geo);//Search Dict for Key BMI and get value BG
-            var imgKeys = geoLocList.Where(pair => pair.Value.Equals(geo)).Select(pair => pair.Key);
+            geoLocDict.TryGetValue(source, out geo);//Search Dict for Key BMI and get value GEO
+            var imgKeys = geoLocDict.Where(pair => pair.Value.Equals(geo)).Select(pair => pair.Key);
 
             FlipViewImgs.Items.Clear();//CLEAR ALL THE PRIVIOUS IMAGES (MABY KEEP) *DUPLICATES ADDED TOO OTHERWISE ------------------------------
 
             //For each img in imgKeys
-            foreach (var img in imgKeys)
+            foreach (var i in imgKeys)
             {
-                //If statment just used until i create the images At Runtime and stick them in a stackpanel/Slider
-                    Image i = new Image();
-                    
-                    i.Source = new BitmapImage(img.UriSource);
-                    FlipViewImgs.Items.Add(i);//Add an Image to the Control        
+                Image img = new Image();
+
+                img.Source = new BitmapImage(i.UriSource);
+                FlipViewImgs.Items.Add(img);//Add an Image to the Control        
             }
-
- 
-
         }
 
         //private void getImgControls()
@@ -274,7 +290,17 @@ namespace PlaceMyPicture
         //    }
         //}
 
+        /*Adds a Custom pin(canvas) at the given location to the map
+         */
+        private void addPinToMap(Canvas canvasPinDesign, BasicGeoposition location)
+        {
+            //Add The Pin to the map and the location passed in
+            MapControl.SetLocation(canvasPinDesign, new Geopoint(location));
+            BingMap.Children.Add(canvasPinDesign);//Add the pin to the map            
+        }
 
+        /*Creates a new canvas object
+         */
         private Canvas newCanvas()
         {
             Canvas canvas = new Canvas();
