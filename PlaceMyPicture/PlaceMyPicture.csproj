@@ -101,6 +101,7 @@
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Models\PicturesPlaceModel.cs" />
     <Compile Include="PhotosModel.cs" />
     <Compile Include="PicturesPlaceModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -133,7 +134,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Models\" />
     <Folder Include="ViewModels\" />
     <Folder Include="Views\" />
   </ItemGroup>

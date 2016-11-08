@@ -73,6 +73,7 @@ namespace PlaceMyPicture
 
                     BingMap.Center = new Geopoint(geo);//Center Map on geolocation
                     BingMap.ZoomLevel = 7;//Sets the zoom level on the map
+                    BingMap.Height = SpMap.ActualHeight;//important, sets height to stackpannels height
                     break;
 
                 case GeolocationAccessStatus.Denied:
@@ -84,7 +85,6 @@ namespace PlaceMyPicture
                     break;
             }
         }
-
 
         /*Facebook LogIn Authorization/Permissions
          */
@@ -239,6 +239,9 @@ namespace PlaceMyPicture
             {
                 BitmapImage source = getBtnBitmap(sender);
                 displayImages(source);
+                SpMap.Visibility = Visibility.Collapsed;
+                SpFlipImages.Visibility = Visibility.Visible;
+                SpBackToMap.Visibility = Visibility.Visible;
             };
 
             //Lambda Expression, When The Button Gets Hovered Over Do Something (NOT USED) MABY BLOW MAIN IMAGE UP -------------------------------------
@@ -276,7 +279,8 @@ namespace PlaceMyPicture
             foreach (var i in imgKeys)
             {
                 Image img = new Image();
-
+                img.VerticalAlignment = VerticalAlignment.Center;
+                img.HorizontalAlignment = HorizontalAlignment.Center;
                 img.Source = new BitmapImage(i.UriSource);
                 FlipViewImgs.Items.Add(img);//Add an Image to the Control        
             }
@@ -309,6 +313,13 @@ namespace PlaceMyPicture
             canvas.Margin = new Windows.UI.Xaml.Thickness(-10);
 
             return canvas;
+        }
+
+        private void button_Click(object sender, RoutedEventArgs e)
+        {
+            SpMap.Visibility = Visibility.Visible;
+            SpFlipImages.Visibility = Visibility.Collapsed;
+            SpBackToMap.Visibility = Visibility.Collapsed;
         }
     }
 }
