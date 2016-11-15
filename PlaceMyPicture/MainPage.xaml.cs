@@ -131,14 +131,17 @@ namespace PlaceMyPicture
             FBSingleValue value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
             FBResult graphResult = await value.GetAsync();
 
-            if (graphResult.Succeeded)//check to see if the Requets Succeeded
+            if (graphResult.Succeeded)//check to see if the Request Succeeded
             {
 
                 PicturePlaceObject results = graphResult.Object as PicturePlaceObject;
 
                 var db = new PicturePlaceDb();//WIPES PLACES IF RUN TWICE (CREATES A NEW INSTANCE OF PicturePlaceDb)   *** FIX ***
 
-                while (results.paging != null || results.data.Count() != 0)
+                getAllFbPic(results, parameters, endpoint, db);
+
+                #region
+                /*while (results.paging != null || results.data.Count() != 0)
                 {
                     addPicToList(results, db);//Add Results to a list
 
@@ -148,9 +151,10 @@ namespace PlaceMyPicture
                     value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
                     graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
                     results = graphResult.Object as PicturePlaceObject;
-                }
+                }*/
+                #endregion
 
-                makeCustomPin();//makes pins from FB images that have locations added
+                // makeCustomPin();//makes pins from FB images that have locations added
             }
             else
             {
@@ -159,26 +163,22 @@ namespace PlaceMyPicture
             }
         }
 
-        /*Method loops through all the pictures in picDataDict that have a location, gets image source, Long/Lat coords and passes it to the method
-        * createNewPin()
-        */
-        private void makeCustomPin()
+        private async void getAllFbPic(PicturePlaceObject results, PropertySet parameters, string endpoint, PicturePlaceDb db)
         {
-            BasicGeoposition location = new BasicGeoposition();
-            foreach (var pic in picDataDict)
+            while (results.paging != null || results.data.Count() != 0)
             {
-                //Skip over the pictures that dont have a long/lat or place
-                if (pic.Value.place != null && pic.Value.place.location != null)
-                {
-                    BitmapImage img = new BitmapImage(new Uri(pic.Value.source, UriKind.Absolute));
-                    location.Latitude = pic.Value.place.location.latitude;
-                    location.Longitude = pic.Value.place.location.longitude;
 
-                    createNewPin(location, img);
-                }
+                addPicToList(results, db);//Add Results to a list
+
+                parameters.Remove("after");//Remove previous parameters
+                parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
+
+                FBSingleValue value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
+                FBResult graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
+                results = graphResult.Object as PicturePlaceObject;
+
             }
         }
-
 
         private void addPicToDB(PicturePlaceObject results)
         {
@@ -236,8 +236,24 @@ namespace PlaceMyPicture
 
                     db.Add(pictureData);
                     db.SaveChanges();
+
+                    makeCustomPin(pic);//Each iteration make a new pin and add it to the map
                 }
             }
+        }
+
+        /*Method loops through all the pictures in picDataDict that have a location, gets image source, Long/Lat coords and passes it to the method createNewPin()
+        */
+        private void makeCustomPin(Datum result)
+        {
+
+            BasicGeoposition location = new BasicGeoposition();
+
+            BitmapImage img = new BitmapImage(new Uri(result.source, UriKind.Absolute));
+            location.Latitude = result.place.location.latitude;
+            location.Longitude = result.place.location.longitude;
+
+            createNewPin(location, img);
         }
 
         /*Creates a new pin(canvas/ellipse/button) and adds it to the Bing Map
