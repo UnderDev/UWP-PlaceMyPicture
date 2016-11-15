@@ -14,6 +14,7 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using Microsoft.EntityFrameworkCore;
 
 namespace PlaceMyPicture
 {
@@ -30,6 +31,11 @@ namespace PlaceMyPicture
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+
+            using (var db = new PicturePlaceDb())
+            {
+                db.Database.Migrate();
+            }
         }
 
         /// <summary>

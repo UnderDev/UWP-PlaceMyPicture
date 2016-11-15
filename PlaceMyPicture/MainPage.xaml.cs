@@ -41,6 +41,9 @@ namespace PlaceMyPicture
             this.InitializeComponent();
             init();
             OnLogin();
+
+
+            deleteFromDB();
         }
 
         private void init()
@@ -85,6 +88,7 @@ namespace PlaceMyPicture
                     break;
             }
         }
+
 
         /*Facebook LogIn Authorization/Permissions
          */
@@ -132,9 +136,11 @@ namespace PlaceMyPicture
 
                 PicturePlaceObject results = graphResult.Object as PicturePlaceObject;
 
-                while (results.paging != null || results.data.Count != 0)
+                var db = new PicturePlaceDb();//WIPES PLACES IF RUN TWICE (CREATES A NEW INSTANCE OF PicturePlaceDb)   *** FIX ***
+
+                while (results.paging != null || results.data.Count() != 0)
                 {
-                    addPicToList(results);//Add Results to a list
+                    addPicToList(results, db);//Add Results to a list
 
                     parameters.Remove("after");//Remove previous parameters
                     parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
@@ -173,13 +179,64 @@ namespace PlaceMyPicture
             }
         }
 
+
+        private void addPicToDB(PicturePlaceObject results)
+        {
+            using (var db = new PicturePlaceDb())
+            {
+                db.Add(results.data);
+
+            }
+        }
+
+        //REMOVES ALL DATA FROM DB
+        private void deleteFromDB()
+        {
+            using (var db = new PicturePlaceDb())
+            {
+                foreach (var item in db.data)
+                {
+                    db.data.Remove(item);//.SELECTEDITEM?
+                }
+
+                db.SaveChanges();
+            }
+        }
+
         /*Creates a dictonary with the object id as the key and the object iteself as the value
          */
-        private void addPicToList(PicturePlaceObject results)
+        private void addPicToList(PicturePlaceObject results, PicturePlaceDb db)
         {
             foreach (var pic in results.data)
             {
-                picDataDict.Add(pic.id, pic);
+                if (pic.place != null && pic.place.location != null)
+                {
+                    picDataDict.Add(pic.id, pic);
+
+                    var PicLocationData = new PicLocation
+                    {
+                        city = pic.place.location.city,
+                        country = pic.place.location.country,
+                        latitude = pic.place.location.latitude,
+                        longitude = pic.place.location.longitude
+                    };
+
+                    var picPlaceData = new PicPlace
+                    {
+                        location = PicLocationData,
+                        name = pic.place.name
+                    };
+
+                    var pictureData = new PicDatum
+                    {
+                        id = pic.id,
+                        source = pic.source,
+                        place = picPlaceData
+                    };
+
+                    db.Add(pictureData);
+                    db.SaveChanges();
+                }
             }
         }
 
@@ -210,8 +267,6 @@ namespace PlaceMyPicture
             geoLocDict.Add(urlImage, location);//add the location to the list
         }
 
-        /*Creates/returns a new Ellipse control with the passed in parameters
-         */
         private Ellipse newEllipse(Color color, ImageBrush imgBrush)
         {
             Ellipse elip = new Ellipse();

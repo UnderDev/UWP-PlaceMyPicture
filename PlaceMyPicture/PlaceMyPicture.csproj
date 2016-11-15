@@ -90,7 +90,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
-    <None Include="PlaceMyPicture_StoreKey.pfx" />
+    <None Include="App.config" />
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
@@ -101,6 +101,12 @@
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\20161114185259_MyFirstMigration.cs" />
+    <Compile Include="Migrations\20161114185259_MyFirstMigration.designer.cs">
+      <DependentUpon>20161114185259_MyFirstMigration.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\PicturePlaceDbModelSnapshot.cs" />
+    <Compile Include="Model.cs" />
     <Compile Include="PhotosModel.cs" />
     <Compile Include="PicturesPlaceModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -109,7 +115,6 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <None Include="PlaceMyPicture_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Package.StoreAssociation.xml" />

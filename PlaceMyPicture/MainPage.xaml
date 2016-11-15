@@ -26,7 +26,7 @@
 
         <StackPanel x:Name="SpBackToMap" Grid.Row="4" Grid.RowSpan="1" Grid.Column="0"  Grid.ColumnSpan="5" Visibility="Collapsed">
             <Button x:Name="button" Content="Back" Height="100" Width="320" Click="button_Click" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    BorderBrush="#FFE20D0D" Foreground="#FFF4F3F3" Background="#FF0A72B1" />
+                    BorderBrush="#FFE20D0D" Foreground="#FFF4F3F3" Background="#FF0A72B1"/>
         </StackPanel>
 
         <StackPanel x:Name="SpFlipImages" Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"  Grid.ColumnSpan="3" Visibility="Collapsed">
