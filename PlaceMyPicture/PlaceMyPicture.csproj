@@ -101,9 +101,9 @@
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\20161114185259_MyFirstMigration.cs" />
-    <Compile Include="Migrations\20161114185259_MyFirstMigration.designer.cs">
-      <DependentUpon>20161114185259_MyFirstMigration.cs</DependentUpon>
+    <Compile Include="Migrations\20161116180119_FaceBookMigration.cs" />
+    <Compile Include="Migrations\20161116180119_FaceBookMigration.designer.cs">
+      <DependentUpon>20161116180119_FaceBookMigration.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\PicturePlaceDbModelSnapshot.cs" />
     <Compile Include="Model.cs" />
@@ -137,6 +137,7 @@
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

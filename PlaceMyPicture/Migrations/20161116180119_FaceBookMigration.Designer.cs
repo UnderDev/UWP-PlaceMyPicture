@@ -8,9 +8,10 @@ using PlaceMyPicture;
 namespace PlaceMyPicture.Migrations
 {
     [DbContext(typeof(PicturePlaceDb))]
-    partial class PicturePlaceDbModelSnapshot : ModelSnapshot
+    [Migration("20161116180119_FaceBookMigration")]
+    partial class FaceBookMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
             modelBuilder
                 .HasAnnotation("ProductVersion", "1.0.1");

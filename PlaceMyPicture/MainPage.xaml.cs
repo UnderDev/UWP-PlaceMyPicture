@@ -33,7 +33,7 @@ namespace PlaceMyPicture
     public sealed partial class MainPage : Page
     {
 
-        private Dictionary<String, Datum> picDataDict;
+        //private Dictionary<String, Datum> picDataDict;
         private Dictionary<BitmapImage, BasicGeoposition> geoLocDict;
 
         public MainPage()
@@ -43,12 +43,12 @@ namespace PlaceMyPicture
             OnLogin();
 
 
-            deleteFromDB();
+            //deleteFromDB();
         }
 
         private void init()
         {
-            picDataDict = new Dictionary<String, Datum>();
+            //picDataDict = new Dictionary<String, Datum>();
             geoLocDict = new Dictionary<BitmapImage, BasicGeoposition>();
             getUserLocation();
         }
@@ -137,24 +137,9 @@ namespace PlaceMyPicture
                 PicturePlaceObject results = graphResult.Object as PicturePlaceObject;
 
                 var db = new PicturePlaceDb();//WIPES PLACES IF RUN TWICE (CREATES A NEW INSTANCE OF PicturePlaceDb)   *** FIX ***
+                //var db = (dataBase == null) ? new PicturePlaceDb() : dataBase;
 
                 getAllFbPic(results, parameters, endpoint, db);
-
-                #region
-                /*while (results.paging != null || results.data.Count() != 0)
-                {
-                    addPicToList(results, db);//Add Results to a list
-
-                    parameters.Remove("after");//Remove previous parameters
-                    parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
-
-                    value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
-                    graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
-                    results = graphResult.Object as PicturePlaceObject;
-                }*/
-                #endregion
-
-                // makeCustomPin();//makes pins from FB images that have locations added
             }
             else
             {
@@ -165,28 +150,21 @@ namespace PlaceMyPicture
 
         private async void getAllFbPic(PicturePlaceObject results, PropertySet parameters, string endpoint, PicturePlaceDb db)
         {
-            while (results.paging != null || results.data.Count() != 0)
+            Boolean addedAllPics = false;
+            do
             {
+                addedAllPics = sortPictures(results, db);//Add Results to a list
 
-                addPicToList(results, db);//Add Results to a list
+                if (addedAllPics ==false) {
+                    parameters.Remove("after");//Remove previous parameters
+                    parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
 
-                parameters.Remove("after");//Remove previous parameters
-                parameters.Add("after", results.paging.cursors.after);//the next page to send the request too
+                    FBSingleValue value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
+                    FBResult graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
+                    results = graphResult.Object as PicturePlaceObject;
+                }
 
-                FBSingleValue value = new FBSingleValue(endpoint, parameters, DeserializeJson.FromJson);//send the request and get back a JSON responce
-                FBResult graphResult = await value.GetAsync();//check to see if the Requets Succeeded 
-                results = graphResult.Object as PicturePlaceObject;
-
-            }
-        }
-
-        private void addPicToDB(PicturePlaceObject results)
-        {
-            using (var db = new PicturePlaceDb())
-            {
-                db.Add(results.data);
-
-            }
+            } while ((results.paging != null || results.data.Count() != 0) && addedAllPics == false);
         }
 
         //REMOVES ALL DATA FROM DB
@@ -196,69 +174,99 @@ namespace PlaceMyPicture
             {
                 foreach (var item in db.data)
                 {
-                    db.data.Remove(item);//.SELECTEDITEM?
+                    db.data.Remove(item);//.SELECTED ITEM (when u click on something)?
                 }
-
                 db.SaveChanges();
             }
         }
 
         /*Creates a dictonary with the object id as the key and the object iteself as the value
          */
-        private void addPicToList(PicturePlaceObject results, PicturePlaceDb db)
+        /*Creates a dictonary with the object id as the key and the object iteself as the value
+        */
+        private Boolean sortPictures(PicturePlaceObject results, PicturePlaceDb db)
         {
-            foreach (var pic in results.data)
+            Boolean addedAllPics = true;
+            foreach (var pic in results.data)//loop through all the Pics in results.data
             {
-                if (pic.place != null && pic.place.location != null)
+                if (pic.place != null && pic.place.location != null)//Only add Pics that have a place/location from results
                 {
-                    picDataDict.Add(pic.id, pic);
+                    var placeId = db.data.Select(id => id.id);//COLLECTION OF ALL THE IDS
 
-                    var PicLocationData = new PicLocation
+                    //CHECK TO SEE IF THE DATABASE ALREADY CONTAINS THE PICTURE IF YES, THEN ALL PICTURES HAVE BEEN ADDED....... pic.place.id   ***** FIX *******
+                    //if there are no pics or the picture id wasnt found
+
+                    if (!placeId.Contains(pic.id) || placeId == null)
                     {
-                        city = pic.place.location.city,
-                        country = pic.place.location.country,
-                        latitude = pic.place.location.latitude,
-                        longitude = pic.place.location.longitude
-                    };
-
-                    var picPlaceData = new PicPlace
-                    {
-                        location = PicLocationData,
-                        name = pic.place.name
-                    };
-
-                    var pictureData = new PicDatum
-                    {
-                        id = pic.id,
-                        source = pic.source,
-                        place = picPlaceData
-                    };
-
-                    db.Add(pictureData);
-                    db.SaveChanges();
-
-                    makeCustomPin(pic);//Each iteration make a new pin and add it to the map
+                        addedAllPics = false;
+                        storePicture(pic, db);
+                    }
                 }
+            }
+            var tempList = db.data.AsEnumerable().Select(pic => new FbPicInfo
+            {
+                longitude = pic.longitude,
+                latitude = pic.latitude,
+                source = pic.source,
+                name = pic.name,
+                country = pic.country,
+                city = pic.city
+            }).ToList();
+
+            paintPins(tempList);
+            return addedAllPics;
+        }
+
+        private void storePicture(Datum pic, PicturePlaceDb db)
+        {
+            var picInfo = new FbPicInfo
+            {
+                city = pic.place.location.city,
+                country = pic.place.location.country,
+                latitude = pic.place.location.latitude,
+                longitude = pic.place.location.longitude,
+                id = pic.id,
+                name = pic.place.name,
+                source = pic.source
+            };
+
+            db.Add(picInfo);
+            db.SaveChanges();
+        }
+
+        private void paintPins(List<FbPicInfo> tempList)
+        {
+            foreach (var pic in tempList)//loop through all the Pics in results.data
+            {
+                BasicGeoposition geo = createBasicGeoPosition(pic);
+                BitmapImage img = createBitMapImage(pic);
+                Canvas pinDesign = designPin(geo, img);
+                addPinToMap(pinDesign, geo);
             }
         }
 
+
         /*Method loops through all the pictures in picDataDict that have a location, gets image source, Long/Lat coords and passes it to the method createNewPin()
         */
-        private void makeCustomPin(Datum result)
+        private BasicGeoposition createBasicGeoPosition(FbPicInfo pic)
         {
-
             BasicGeoposition location = new BasicGeoposition();
+            location.Latitude = pic.latitude;
+            location.Longitude = pic.longitude;
 
-            BitmapImage img = new BitmapImage(new Uri(result.source, UriKind.Absolute));
-            location.Latitude = result.place.location.latitude;
-            location.Longitude = result.place.location.longitude;
+            return location;
+            //createNewPin(location, img);
+        }
 
-            createNewPin(location, img);
+        private BitmapImage createBitMapImage(FbPicInfo pic)
+        {
+            BitmapImage img = new BitmapImage(new Uri(pic.source, UriKind.Absolute));
+            return img;
         }
 
         /*Creates a new pin(canvas/ellipse/button) and adds it to the Bing Map
          */
-        public void createNewPin(BasicGeoposition location, BitmapImage urlImage)
+        public Canvas designPin(BasicGeoposition location, BitmapImage urlImage)
         {
             ImageBrush imageBrush = new ImageBrush();
             imageBrush.ImageSource = urlImage;
@@ -266,7 +274,7 @@ namespace PlaceMyPicture
             Color color = Colors.Coral;
             Canvas canvasPinDesign = newCanvas();//creates a new canvas
 
-            if (geoLocDict.ContainsValue(location))
+            if (geoLocDict.ContainsValue(location))//if i have a duplicate location in the dictonary geoLocDict change ellipse colour to red
             {
                 color = Colors.Red;
             }
@@ -277,10 +285,19 @@ namespace PlaceMyPicture
             Button btn = newButton(imageBrush);//Create A New Button
             canvasPinDesign.Children.Add(btn);//Add Btn to Canvas
 
-
-            addPinToMap(canvasPinDesign, location);
-
             geoLocDict.Add(urlImage, location);//add the location to the list
+            return canvasPinDesign;
+        }
+
+        /*Creates a new canvas object
+        */
+        private Canvas newCanvas()
+        {
+            Canvas canvas = new Canvas();
+            canvas.Height = 30;
+            canvas.Width = 30;
+            canvas.Margin = new Windows.UI.Xaml.Thickness(-10);
+            return canvas;
         }
 
         private Ellipse newEllipse(Color color, ImageBrush imgBrush)
@@ -330,7 +347,7 @@ namespace PlaceMyPicture
         private BitmapImage getBtnBitmap(object sender)
         {
             Button btnSender = sender as Button;//Cast the sender as a Button
-            ImageBrush brush = btnSender.Background as ImageBrush;//Cast the img.background as a
+            ImageBrush brush = btnSender.Background as ImageBrush;//Cast the img.background as a brush
             BitmapImage source = brush.ImageSource as BitmapImage;//Cast the imageSource as a BitMapImage
             return source;
         }
@@ -357,33 +374,13 @@ namespace PlaceMyPicture
             }
         }
 
-        //private void getImgControls()
-        //{         
-        //    foreach (Image b in imgStackPanel.Children)
-        //    {
-        //        imgControlList.Add(b);
-        //    }
-        //}
-
         /*Adds a Custom pin(canvas) at the given location to the map
          */
         private void addPinToMap(Canvas canvasPinDesign, BasicGeoposition location)
         {
-            //Add The Pin to the map and the location passed in
+            //Add The Pin to the map with the location passed in
             MapControl.SetLocation(canvasPinDesign, new Geopoint(location));
             BingMap.Children.Add(canvasPinDesign);//Add the pin to the map            
-        }
-
-        /*Creates a new canvas object
-         */
-        private Canvas newCanvas()
-        {
-            Canvas canvas = new Canvas();
-            canvas.Height = 30;
-            canvas.Width = 30;
-            canvas.Margin = new Windows.UI.Xaml.Thickness(-10);
-
-            return canvas;
         }
 
         private void button_Click(object sender, RoutedEventArgs e)
@@ -392,5 +389,6 @@ namespace PlaceMyPicture
             SpFlipImages.Visibility = Visibility.Collapsed;
             SpBackToMap.Visibility = Visibility.Collapsed;
         }
+
     }
 }
