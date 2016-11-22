@@ -8,8 +8,8 @@ using PlaceMyPicture;
 namespace PlaceMyPicture.Migrations
 {
     [DbContext(typeof(PicturePlaceDb))]
-    [Migration("20161116180119_FaceBookMigration")]
-    partial class FaceBookMigration
+    [Migration("20161121155156_FacebookPicMigration")]
+    partial class FacebookPicMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -19,8 +19,6 @@ namespace PlaceMyPicture.Migrations
             modelBuilder.Entity("PlaceMyPicture.FbPicInfo", b =>
                 {
                     b.Property<string>("id");
-
-                    b.Property<int>("PicDatumId");
 
                     b.Property<string>("city");
 

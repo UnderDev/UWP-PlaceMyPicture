@@ -8,35 +8,35 @@
     mc:Ignorable="d"
     xmlns:Maps="using:Windows.UI.Xaml.Controls.Maps">
 
-    <Grid Background="{ThemeResource AppBarButtonForeground}">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
-            <RowDefinition Height="1*" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="2*" />
             <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="1*" />
-            <ColumnDefinition Width="1*" />
-            <ColumnDefinition Width="1*" />
-            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="2*" />
             <ColumnDefinition Width="1*" />
         </Grid.ColumnDefinitions>
 
-        <StackPanel x:Name="SpBackToMap" Grid.Row="4" Grid.RowSpan="1" Grid.Column="0"  Grid.ColumnSpan="5" Visibility="Collapsed">
-            <Button x:Name="button" Content="Back" Height="100" Width="320" Click="button_Click" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    BorderBrush="#FFE20D0D" Foreground="#FFF4F3F3" Background="#FF0A72B1"/>
+        <StackPanel x:Name="SpPicName" Grid.Row="0" Grid.Column="0"  Grid.ColumnSpan="5" Visibility="Visible" VerticalAlignment="Bottom">
+            <TextBlock x:Name="textBlock" TextWrapping="Wrap"  Foreground="#FFFCFCFC" TextAlignment="Center" FontFamily="Goudy Stout" FontSize="20"/>
         </StackPanel>
 
-        <StackPanel x:Name="SpFlipImages" Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"  Grid.ColumnSpan="3" Visibility="Collapsed">
-            <FlipView x:Name="FlipViewImgs" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <!--Add images here at runtime into a FlipView-->
-            </FlipView>
+        <FlipView x:Name="FlipViewImgs" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"  Grid.ColumnSpan="3" Visibility="Collapsed" SelectionChanged="FlipViewImgs_SelectionChanged" BorderBrush="White" BorderThickness="1" >
+            <!--Add images here at runtime into a FlipView-->
+        </FlipView>
+
+        <StackPanel x:Name="SpBackToMap" Grid.Row="4" Grid.RowSpan="1" Grid.Column="0"  Grid.ColumnSpan="5" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Button x:Name="BackBtn" Foreground="White" BorderBrush="White" FontFamily="Ravie" Content="Back" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" RenderTransformOrigin="0.5,0.5" Click="BackBtn_Click" Width="142"  />
         </StackPanel>
 
-
-        <StackPanel x:Name="SpMap" Grid.Row="0" Grid.RowSpan="5" Grid.Column="0"  Grid.ColumnSpan="5" Visibility="Visible">
+        <StackPanel x:Name="SpMap" Grid.Row="0" Grid.RowSpan="5" Grid.Column="0"  Grid.ColumnSpan="5" Visibility="Visible" Background="Black" >
             <!--Places a Map on the application with the unique MapServiceToken(Taken from https://www.bingmapsportal.com/Application)-->
             <Maps:MapControl 
             x:Name="BingMap" 
@@ -45,6 +45,7 @@
             LandmarksVisible="True" 
             IsRightTapEnabled="true" 
             TiltInteractionMode="Auto"
+            ZoomLevel="2"
             />
         </StackPanel>
     </Grid>

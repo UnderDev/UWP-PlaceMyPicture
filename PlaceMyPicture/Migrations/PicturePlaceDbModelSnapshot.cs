@@ -19,8 +19,6 @@ namespace PlaceMyPicture.Migrations
                 {
                     b.Property<string>("id");
 
-                    b.Property<int>("PicDatumId");
-
                     b.Property<string>("city");
 
                     b.Property<string>("country");

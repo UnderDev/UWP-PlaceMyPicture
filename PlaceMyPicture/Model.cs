@@ -16,16 +16,13 @@ namespace PlaceMyPicture
         {
             optionsBuilder.UseSqlite("Filename=FacebookDb.db");
         }
-
     }
 
 
     public class FbPicInfo
     {
         public FbPicInfo() { }
-        public int PicDatumId { get; set; }
         public string source { get; set; }
-
         //place stuff
         public string name { get; set; }
 
@@ -36,7 +33,6 @@ namespace PlaceMyPicture
         public double longitude { get; set; }
 
         public string id { get; set; }
-
     }
 
 }

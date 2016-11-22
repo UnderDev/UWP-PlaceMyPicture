@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace PlaceMyPicture.Migrations
 {
-    public partial class FaceBookMigration : Migration
+    public partial class FacebookPicMigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -13,7 +13,6 @@ namespace PlaceMyPicture.Migrations
                 columns: table => new
                 {
                     id = table.Column<string>(nullable: false),
-                    PicDatumId = table.Column<int>(nullable: false),
                     city = table.Column<string>(nullable: true),
                     country = table.Column<string>(nullable: true),
                     latitude = table.Column<double>(nullable: false),
