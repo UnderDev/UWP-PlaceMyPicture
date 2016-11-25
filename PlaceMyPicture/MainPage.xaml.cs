@@ -37,6 +37,7 @@ namespace PlaceMyPicture
         private Dictionary<BitmapImage, BasicGeoposition> _geoLocDict;
         private Dictionary<Uri, FbPicInfo> _tempInfoDict;
         private const string FB_API_KEY = "1083564175045990";
+        private FBSession session;
 
         public MainPage()
         {
@@ -97,7 +98,7 @@ namespace PlaceMyPicture
         private async void OnLogin()
         {
             string Sid = WebAuthenticationBroker.GetCurrentApplicationCallbackUri().ToString();
-            FBSession session = FBSession.ActiveSession;
+            session = FBSession.ActiveSession;
 
             session.WinAppId = Sid;//not used (only for windows 8 phone etc)
             session.FBAppId = FB_API_KEY;//AppId From App Created on facebook
@@ -137,7 +138,6 @@ namespace PlaceMyPicture
 
             if (graphResult.Succeeded)//check to see if the Request Succeeded
             {
-
                 PicturePlaceObject results = graphResult.Object as PicturePlaceObject;
 
                 var db = new PicturePlaceDb();
@@ -215,7 +215,7 @@ namespace PlaceMyPicture
 
         /*Method takes in the Database object and creates a temporary list which is then looped through and passed into   AddPinToMap() to paint the pin to map     
          */
-        private void PaintPins(PicturePlaceDb db)
+        private async void PaintPins(PicturePlaceDb db)
         {
             var tempList = db.data.AsEnumerable().Select(pic => new FbPicInfo
             {
@@ -230,6 +230,12 @@ namespace PlaceMyPicture
             foreach (var pic in tempList)//loop through all the Pics in tempList
             {
                 AddPinToMap(DesignPin(pic), CreateBasicGeoPosition(pic));
+            }
+            if (tempList.Count == 0)
+            {
+                var dialog = new MessageDialog("You are not currently not tagged in any facebook pictures with locations.\nPlease Tag youself in a picture on facebook and give it a location and run the app again");
+                dialog.Title = "No Tagged Photos Found With Locations";
+                await dialog.ShowAsync();
             }
         }
 
@@ -396,6 +402,13 @@ namespace PlaceMyPicture
          */
         private void BackBtn_Click(object sender, RoutedEventArgs e)
         {
+            DefaultView();
+        }
+
+        /*Method Reverts back to default view (the view from start up) 
+         */
+        private void DefaultView()
+        {
             SpMap.Visibility = Visibility.Visible;
             FlipViewImgs.Visibility = Visibility.Collapsed;
             SpBackToMap.Visibility = Visibility.Collapsed;
@@ -403,7 +416,7 @@ namespace PlaceMyPicture
             FlipViewImgs.Items.Clear();//Clear all the images in the flipView (imortant)
         }
 
-        /*Not used, for testing purpose only to remore all data from database
+        /*Deletes everything from the database
          */
         private void DeleteFromDB()
         {
@@ -417,6 +430,35 @@ namespace PlaceMyPicture
             }
         }
 
+        /*Logs the user out of facebook, erases the database and reverts back to default views etc
+         */
+        private async void LogOut()
+        {
+            await session.LogoutAsync();
+            DeleteFromDB();
+            OnLogin();
+            DefaultView();
+            BingMap.Children.Clear();
+            _tempInfoDict.Clear();
+            _geoLocDict.Clear();
+        }
 
+        /*LogoutBtn method displays a dialog box to the user with an option to log out or stay logged in
+         */
+        private async void LogOutBtn_Click(object sender, RoutedEventArgs e)
+        {
+            MessageDialog dialog = new MessageDialog("Logging out will Remove all user information");
+            dialog.Title = "Log Out";
+            dialog.Commands.Add(new UICommand("Yes") { Id = 0 });
+
+            dialog.Commands.Add(new UICommand("No") { Id = 1 });
+            dialog.DefaultCommandIndex = 0;
+            dialog.CancelCommandIndex = 1;
+
+            var result = await dialog.ShowAsync();
+
+            if ((int)result.Id == 0)//If log out was yes, log out otherwise do nothing
+                LogOut();
+        }
     }
 }
