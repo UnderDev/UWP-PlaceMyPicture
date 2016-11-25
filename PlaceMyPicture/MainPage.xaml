@@ -48,5 +48,9 @@
             ZoomLevel="2"
             />
         </StackPanel>
+
+        <Canvas x:Name="SpLogOut" Grid.Row="4" Grid.RowSpan="1" Grid.Column="0"  Visibility="Visible" VerticalAlignment="Center" HorizontalAlignment="Left">
+            <Button Name="LogOutBtn" Content="Log Out" Click="LogOutBtn_Click"></Button>
+        </Canvas>
     </Grid>
 </Page>
