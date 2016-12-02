@@ -26,7 +26,7 @@ using Windows.Storage.Streams;
 using Windows.UI.Xaml.Shapes;
 using Windows.UI;
 using System.Dynamic;
-
+using Windows.ApplicationModel.Core;
 
 namespace PlaceMyPicture
 {
@@ -42,8 +42,7 @@ namespace PlaceMyPicture
         public MainPage()
         {
             this.InitializeComponent();
-            Init();
-            OnLogin();
+            Init();         
         }
 
         /*Init method initialises everything at the start
@@ -53,6 +52,8 @@ namespace PlaceMyPicture
             _geoLocDict = new Dictionary<BitmapImage, BasicGeoposition>();
             _tempInfoDict = new Dictionary<Uri, FbPicInfo>();
             GetUserLocation();
+            OnLogin();
+            DefaultView();
         }
 
         /*Method gets the users Current location and passes the Long/Lat to the Bing Map showing you your current location
@@ -118,10 +119,26 @@ namespace PlaceMyPicture
             }
             else
             {
-                MessageDialog dialog = new MessageDialog("1) Re-check Credentials \n2) Check your internet connection.");
+                MessageDialog dialog = new MessageDialog("1) Re-check Credentials \n2) Check your internet connection.\n\n YES To Retry\n NO To Quit");
                 dialog.Title = "Error Logging In";
-                await dialog.ShowAsync();
+                dialog.Commands.Add(new UICommand("Yes") { Id = 0 });
+
+                dialog.Commands.Add(new UICommand("No") { Id = 1 });
+                dialog.DefaultCommandIndex = 0;
+                dialog.CancelCommandIndex = 1;
+
+                var messagResult = await dialog.ShowAsync();
+
+                if ((int)messagResult.Id == 0)//If log out was yes, log out otherwise do nothing
+                    LogOut();
+                else
+                    CloseApp();
             }
+        }
+
+        public void CloseApp()
+        {
+            CoreApplication.Exit();
         }
 
         /*On Successful login, send GET request to FB endpoint with params and DeserializeJson the results into objects/Dictonary
